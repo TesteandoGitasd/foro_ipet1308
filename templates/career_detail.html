@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<a href="{{ url_for('careers_list') }}" class="btn btn-secondary mb-3">← Volver a Carreras</a>
+<h2 class="mb-4">{{ career.name }} - Selección de Año</h2>
+<hr>
+
+<div class="row">
+    {% for y in years %}
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm text-center p-4">
+                <i class="fa-solid fa-folder-open text-primary display-4 mb-3"></i>
+                <h4 class="card-title">{{ y }}° Año</h4>
+                <p class="text-muted">Unidades Curriculares del {{ y }}° Año</p>
+                <a href="{{ url_for('year_subjects', career_id=career.id, year_num=y) }}" class="btn btn-primary">
+                    Ver Materias
+                </a>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

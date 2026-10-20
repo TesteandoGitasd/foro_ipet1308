@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="mb-4">Carreras del IPET 1308</h2>
+<div class="row">
+    {% for career in careers %}
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <h5 class="card-title">{{ career.name }}</h5>
+                    <a href="{{ url_for('career_detail', career_id=career.id) }}" class="btn btn-outline-primary mt-3">Ver Materias</a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

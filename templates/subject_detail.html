@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{{ url_for('year_subjects', career_id=subject.career_id, year_num=subject.year) }}" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i> Volver a Materias
+    </a>
+    
+    <!-- Botón que activa el formulario desplegable para subir apunte -->
+    <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#formSubirApunte" aria-expanded="false" aria-controls="formSubirApunte">
+        <i class="fa-solid fa-plus me-1"></i> Subir Apunte
+    </button>
+</div>
+
+<h2 class="mb-1">Materia: {{ subject.name }}</h2>
+<p class="text-muted mb-4">Ciclo Lectivo: {{ subject.year }}° Año</p>
+<hr>
+
+<!-- Formulario desplegable para subir apuntes -->
+<div class="collapse mb-4" id="formSubirApunte">
+    <div class="card card-body shadow-sm border-success">
+        <h4 class="text-success mb-3"><i class="fa-solid fa-cloud-arrow-up me-2"></i>Subir Nuevo Apunte</h4>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Título del Apunte</label>
+                <input type="text" name="title" class="form-control" placeholder="Ej: Resumen Unidad 1" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Descripción / Observaciones</label>
+                <textarea name="description" class="form-control" rows="2" placeholder="Opcional: breve resumen del contenido..."></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Archivo (PDF o Word)</label>
+                <input type="file" name="file" class="form-control" required>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#formSubirApunte">Cancelar</button>
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-upload me-1"></i> Publicar Apunte</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Listado de Apuntes -->
+<h4 class="mb-3">Apuntes Disponibles</h4>
+<div class="list-group">
+    {% for file in subject.files %}
+        <div class="list-group-item list-group-item-action mb-3 shadow-sm rounded border">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <h5 class="mb-1 text-primary fw-bold"><i class="fa-solid fa-file-lines me-2"></i>{{ file.title }}</h5>
+                <div>
+                    <span class="text-muted me-2"><i class="fa-solid fa-user me-1"></i> {{ file.owner.username }}</span>
+                    <span class="badge {% if file.owner.role == 'admin' %}bg-danger{% elif file.owner.role == 'profesor' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ file.owner.role | upper }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Fecha de subida -->
+            <p class="text-muted small mb-2">
+                <i class="fa-solid fa-calendar-days me-1"></i> Subido el: {{ file.created_at.strftime('%d/%m/%Y %H:%M') if file.created_at else 'Fecha no disponible' }}
+            </p>
+
+            <p class="mb-2 text-dark">{{ file.description or 'Sin descripción' }}</p>
+            <p class="mb-2 text-secondary small"><i class="fa-solid fa-paperclip me-1"></i> Archivo: {{ file.original_name }}</p>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                <!-- Promedio de Calificación -->
+                <div>
+                    <span class="me-2 fw-bold small text-muted">Promedio:</span>
+                    {% if file.average_rating %}
+                        <span class="text-warning fs-5 fw-bold">★ {{ file.average_rating }} / 5</span>
+                        <small class="text-muted">({{ file.ratings|length }} voto/s)</small>
+                    {% else %}
+                        <span class="text-muted small italic">Aún no han calificado este apunte</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Botones de Acción: Calificar, Eliminar y Descargar -->
+                <div class="d-flex gap-2 align-items-center">
+                    <!-- Botón Desplegable para Calificar -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-warning btn-sm dropdown-toggle text-dark fw-bold" type="button" id="dropdownRate{{ file.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-star text-warning me-1"></i> Calificar
+                        </button>
+                        <ul class="dropdown-menu p-2 text-center" aria-labelledby="dropdownRate{{ file.id }}">
+                            <li class="small fw-bold mb-1">Selecciona tu nota:</li>
+                            <li class="d-flex justify-content-center gap-1">
+                                {% for i in range(1, 6) %}
+                                    <a href="{{ url_for('rate_file', file_id=file.id, score=i) }}" class="btn btn-sm btn-light text-warning fw-bold border">
+                                        {{ i }} ★
+                                    </a>
+                                {% endfor %}
+                            </li>
+                        </ul>
+                    </div>
+
+                    {% if current_user.role == 'admin' or file.user_id == current_user.id %}
+                        <a href="{{ url_for('delete_file', file_id=file.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este apunte?');">
+                            <i class="fa-solid fa-trash-can me-1"></i> Eliminar
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('download', file_id=file.id) }}" class="btn btn-outline-success btn-sm">
+                        <i class="fa-solid fa-download me-1"></i> Descargar
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info shadow-sm">
+            <i class="fa-solid fa-circle-info me-2"></i> No hay apuntes subidos en esta materia todavía. Haz clic en <strong>Subir Apunte</strong> arriba para compartir el primero.
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

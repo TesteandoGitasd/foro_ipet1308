@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="mb-3"><i class="fa-solid fa-gauge-high me-2"></i>Panel de Gestión del Administrador</h2>
+<hr>
+
+<!-- Pestañas o Secciones del Panel -->
+<ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold" id="files-tab" data-bs-toggle="tab" data-bs-target="#files-content" type="button" role="tab">
+            <i class="fa-solid fa-file-lines me-1"></i> Gestión de Archivos
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-content" type="button" role="tab">
+            <i class="fa-solid fa-users me-1"></i> Gestión de Usuarios y Rangos
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="adminTabContent">
+    <!-- SECCIÓN DE ARCHIVOS -->
+    <div class="tab-pane fade show active" id="files-content" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Listado de Apuntes Subidos</h4>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('admin_dashboard', sort='date') }}" class="btn btn-outline-primary {% if current_sort == 'date' %}active{% endif %}">
+                    Ordenar por Fecha
+                </a>
+                <a href="{{ url_for('admin_dashboard', sort='rating') }}" class="btn btn-outline-primary {% if current_sort == 'rating' %}active{% endif %}">
+                    Ordenar por Calificación (Estrellas)
+                </a>
+            </div>
+        </div>
+
+        <div class="list-group shadow-sm">
+            {% for file in files %}
+                <div class="list-group-item mb-2 p-3 rounded border">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-1 text-primary fw-bold">{{ file.title }}</h5>
+                        <small class="text-muted">Subido el: {{ file.created_at.strftime('%d/%m/%Y %H:%M') if file.created_at else 'N/A' }}</small>
+                    </div>
+                    <p class="mb-1 text-dark">{{ file.description or 'Sin descripción' }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-secondary"><i class="fa-solid fa-user me-1"></i> Autor: {{ file.owner.username }} | Materia: {{ file.subject.name }}</small>
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('download', file_id=file.id) }}" class="btn btn-outline-success btn-sm">
+                                <i class="fa-solid fa-download me-1"></i> Descargar
+                            </a>
+                            <a href="{{ url_for('delete_file', file_id=file.id) }}" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este apunte?');">
+                                <i class="fa-solid fa-trash-can me-1"></i> Eliminar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info">No hay archivos subidos en el sistema.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SECCIÓN DE USUARIOS -->
+    <div class="tab-pane fade" id="users-content" role="tabpanel">
+        <h4 class="mb-3">Lista de Usuarios Registrados</h4>
+        <div class="table-responsive shadow-sm bg-white rounded p-3">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre y Apellido</th>
+                        <th>Correo Institucional</th>
+                        <th>Rango</th>
+                        <th>Estado</th>
+                        <th>Acciones de Administración</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td class="fw-bold">{{ u.username }}</td>
+                        <td>{{ u.first_name }} {{ u.last_name }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            <span class="badge {% if u.role == 'admin' %}bg-danger{% elif u.role == 'profesor' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ u.role | upper }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if u.is_active_user %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-dark">Bloqueado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.role != 'admin' %}
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <!-- Botones de Cambio de Rango -->
+                                    {% if u.role == 'profesor' %}
+                                        <a href="{{ url_for('set_user_role', user_id=u.id, new_role='alumno') }}" class="btn btn-outline-secondary" title="Quitar rango profesor (Volver a Alumno)">
+                                            <i class="fa-solid fa-user-minus"></i> Alumno
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('set_user_role', user_id=u.id, new_role='profesor') }}" class="btn btn-outline-success" title="Ascender a Profesor">
+                                            <i class="fa-solid fa-user-tie"></i> Profesor
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- Botón para Borrar Todos los Posts del Usuario -->
+                                    <a href="{{ url_for('delete_user_files', user_id=u.id) }}" class="btn btn-outline-warning text-dark" onclick="return confirm('¿Estás seguro de borrar TODOS los apuntes de este usuario?');" title="Borrar todos sus posts">
+                                        <i class="fa-solid fa-trash-can"></i> Todos los Posts
+                                    </a>
+
+                                    <!-- Botón de Bloqueo -->
+                                    <a href="{{ url_for('toggle_block_user', user_id=u.id) }}" class="btn {% if u.is_active_user %}btn-outline-danger{% else %}btn-outline-secondary{% endif %}" title="Bloquear / Desbloquear acceso">
+                                        {% if u.is_active_user %}<i class="fa-solid fa-lock"></i>{% else %}<i class="fa-solid fa-lock-open"></i>{% endif %}
+                                    </a>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">Protegido (Admin)</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
